@@ -1,29 +1,71 @@
 <template>
   <v-container class="d-flex flex-column justify-center align-center">
-    <h1 class="title text-center">{{ title }}</h1>
-    <h2 class="subtitle-2 text-center">select formula</h2>
-    <svg :id="id" :height="outerHeight" :width="outerWidth"></svg>
     <v-row>
-      <v-col class="col-2">
-        <v-select :items="formulas" outlined v-model="activeFormula"></v-select>
+      <v-col class="col-12 col-md-8 d-flex align-center justify-center">
+        <v-card class="pa-6">
+          <v-card-title class="text-center d-block">
+            {{ title }}
+          </v-card-title>
+          <v-card-subtitle class="text-center">
+            {{ subtitle }}
+          </v-card-subtitle>
+          <svg
+            :id="id"
+            :height="outerHeight"
+            :width="outerWidth"
+            class="d-block"
+          />
+        </v-card>
       </v-col>
-      <v-col class="col-3">
-        <v-slider
-          v-model="radius"
-          min="1"
-          max="10"
-          label="Size"
-          inverse-label
-        ></v-slider>
-      </v-col>
-      <v-col class="col-5">
-        <v-color-picker
-          class="ma-2"
-          hide-canvas
-          hide-inputs
-          v-model="color"
-          @update:color="colorObj => (color = colorObj.hex)"
-        ></v-color-picker>
+      <v-col class="col-12 col-md-4 d-flex align-center justify-center">
+        <v-card class="light-blue pa-2 px-6">
+          <v-row>
+            <v-col class="col-12 align-center justify-center">
+              <v-select
+                dark
+                hide-details
+                :items="formulas"
+                outlined
+                v-model="activeFormula"
+              ></v-select>
+            </v-col>
+            <v-col class="col-12 d-flex align-center justify-center">
+              <v-radio-group
+                class="d-flex justify-center"
+                v-model="radiusType"
+                row
+                dark
+              >
+                <v-radio
+                  v-for="(type, index) in radiusTypes"
+                  :key="index"
+                  :label="type"
+                  :value="type"
+                ></v-radio>
+              </v-radio-group>
+            </v-col>
+            <v-col class="col-12 align-center justify-center">
+              <v-slider
+                class="px-4"
+                dark
+                v-model="radius"
+                min="1"
+                max="10"
+                label="Size"
+              ></v-slider>
+            </v-col>
+            <v-col class="col-12">
+              <v-color-picker
+                dark
+                class="ma-2"
+                hide-canvas
+                hide-inputs
+                v-model="color"
+                @update:color="colorObj => (color = colorObj.hex)"
+              ></v-color-picker>
+            </v-col>
+          </v-row>
+        </v-card>
       </v-col>
     </v-row>
   </v-container>
@@ -58,11 +100,16 @@ const BarChart = defineComponent({
     },
     defaultColor: {
       default: "#195693"
+    },
+    defaultRadiusType: {
+      default: "fixed"
     }
   },
   setup(props) {
     const state = reactive({
       title: props.name,
+      radiusType: props.defaultRadiusType,
+      subtitle: `${props.dataSet} line chart`,
       outerWidth: props.width,
       outerHeight: props.height,
       margin: { left: 30, top: 30, right: 30, bottom: 30 },
@@ -71,6 +118,7 @@ const BarChart = defineComponent({
       formulas: ["sine", "parabola", "hilly"],
       activeFormula: props.dataSet
     });
+    const radiusTypes = ["fixed", "scaled"];
     const handleInputColor = (color: any) => {
       state.color = color.hex;
     };
@@ -111,7 +159,9 @@ const BarChart = defineComponent({
       el.attr("transform", `translate(${left},${top})`);
 
     const radiusByValue = (value: number) =>
-      Math.abs((state.radius * +value * 20) / 100);
+      state.radiusType === "scaled"
+        ? Math.abs((state.radius * +value * 20) / 100)
+        : state.radius;
 
     const minmax = (data: number[]) =>
       [d3.min(data) ?? 0, d3.max(data) ?? 100] as [number, number];
@@ -148,30 +198,40 @@ const BarChart = defineComponent({
         .attr("r", ([xValue]: any) => radiusByValue(xValue))
         .attr("fill", state.color)
         .attr("cx", ([xValue]: any) => x(+xValue))
+        .attr("cy", y(0))
+        .transition()
+        .duration(1000)
+        .ease(d3.easeCubicIn, 1)
+        .attr("cx", ([xValue]: any) => x(+xValue))
         .attr("cy", ([_, yValue]: any) => y(+yValue));
     };
 
     onMounted(() => {
       draw(randomData.value, rootSvg());
     });
-
+    const watchedProperties = [
+      () => state.activeFormula,
+      () => state.radius,
+      () => state.color,
+      () => state.radiusType
+    ];
     watch(
-      [() => state.activeFormula, () => state.radius, () => state.color],
+      watchedProperties,
       (newValues, oldValues) => {
-        const [newFormula, newRadius, newColor] = newValues;
-        const [oldFormula, oldRadius, oldColor] = oldValues;
-        if (newFormula && newFormula !== oldFormula) {
+        const [newFormula, newRadius, newColor, newRadiusType] = newValues;
+        const [oldFormula, oldRadius, oldColor, oldRadiusType] = oldValues;
+        if (newFormula !== oldFormula) {
           draw(randomData.value, rootSvg());
-        } else if (newRadius && newRadius !== oldRadius) {
+        } else if (newRadius !== oldRadius || newRadiusType !== oldRadiusType) {
           dots().attr("r", ([x]: any) => radiusByValue(x));
-        } else if (newColor && newColor !== oldColor) {
+        } else if (newColor !== oldColor) {
           dots().attr("fill", newColor);
         }
       },
       { lazy: true }
     );
 
-    return { ...toRefs(state), handleInputColor };
+    return { ...toRefs(state), handleInputColor, radiusTypes };
   }
 });
 export default BarChart;

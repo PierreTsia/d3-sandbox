@@ -33,8 +33,8 @@
       </v-btn>
     </v-app-bar>
 
-    <v-content
-      ><BarChart id="first" name="Chart One" :height="400" :width="400" />
+    <v-content>
+      <BarChart id="first" name="Chart One" :height="400" :width="400" />
       <BarChart
         id="second"
         name="Chart Two"
@@ -50,6 +50,14 @@
         :width="300"
         data-set="parabola"
         default-color="#9D1CD1"
+      />
+      <BarChart
+        id="fourth"
+        name="Chart Four"
+        :height="1200"
+        :width="300"
+        data-set="hilly"
+        default-color="#ea19d5"
       />
       <!-- <PackChart :data="loadData" /-->>
     </v-content>
