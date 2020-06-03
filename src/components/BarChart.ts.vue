@@ -1,5 +1,5 @@
 <template>
-  <v-container class="d-flex flex-column justify-center">
+  <v-container class="d-flex flex-column justify-center align-center">
     <h1 class="title text-center">{{ title }}</h1>
     <h2 class="subtitle-2 text-center">select formula</h2>
     <svg :id="id" :height="outerHeight" :width="outerWidth"></svg>
@@ -20,7 +20,9 @@
         <v-color-picker
           class="ma-2"
           hide-canvas
-          @input="colorObj => (color = colorObj.hex)"
+          hide-inputs
+          v-model="color"
+          @update:color="colorObj => (color = colorObj.hex)"
         ></v-color-picker>
       </v-col>
     </v-row>
@@ -41,19 +43,37 @@ import {
 const BarChart = defineComponent({
   name: "BarChart",
   props: {
-    id: {}
+    id: {},
+    name: {
+      default: "Default title"
+    },
+    width: {
+      default: 500
+    },
+    height: {
+      default: 300
+    },
+    dataSet: {
+      default: "sine"
+    },
+    defaultColor: {
+      default: "#195693"
+    }
   },
   setup(props) {
     const state = reactive({
-      title: "Line Dots Component",
-      outerWidth: 400,
-      outerHeight: 200,
-      color: "red",
-      radius: 5,
+      title: props.name,
+      outerWidth: props.width,
+      outerHeight: props.height,
       margin: { left: 30, top: 30, right: 30, bottom: 30 },
+      color: props.defaultColor,
+      radius: 5,
       formulas: ["sine", "parabola", "hilly"],
-      activeFormula: "sine"
+      activeFormula: props.dataSet
     });
+    const handleInputColor = (color: any) => {
+      state.color = color.hex;
+    };
     const generateData = (arg = "sine") => {
       switch (arg) {
         case "sine":
@@ -87,32 +107,35 @@ const BarChart = defineComponent({
     const rootSvg = () => d3.select(`#${props.id}`);
     const dots = () => rootSvg().selectAll("circle");
 
+    const scaleElement = (el: any, left: number, top: number) =>
+      el.attr("transform", `translate(${left},${top})`);
+
     const radiusByValue = (value: number) =>
       Math.abs((state.radius * +value * 20) / 100);
 
     const minmax = (data: number[]) =>
       [d3.min(data) ?? 0, d3.max(data) ?? 100] as [number, number];
 
+    const axisValues = (data: number[], type = "x") =>
+      data.map(([valueX, valueY]: any) => (type === "x" ? valueX : valueY));
+
     const draw = async (data: any, parent: any) => {
       parent.selectAll("g").remove();
       const root = parent.append("g");
+      scaleElement(root, state.margin.left, state.margin.top);
 
       const [x, y] = [d3.scaleLinear(), d3.scaleLinear()];
       const xAxis = d3.axisBottom(x).ticks(5);
       const yAxis = d3.axisLeft(y).ticks(5);
       const xAxisG = root.append("g");
       const yAxisG = root.append("g");
-      const xMinMax = minmax(data.map(([x]: any) => x));
-      const yMinMax = minmax(data.map(([_, y]: any) => y));
+      const xMinMax = minmax(axisValues(data, "x"));
+      const yMinMax = minmax(axisValues(data, "y"));
       x.domain(xMinMax).range([0, innerWidth.value]);
       y.domain(yMinMax).range([innerHeight.value, 0]);
       xAxisG.attr("transform", `translate(0,${y(0)})`).call(xAxis);
       yAxisG.attr("transform", `translate(${x(0)},0)`).call(yAxis);
 
-      root.attr(
-        "transform",
-        `translate(${state.margin.left},${state.margin.top})`
-      );
       const line = root.append("g");
 
       const dots = line.selectAll("circle");
@@ -131,6 +154,7 @@ const BarChart = defineComponent({
     onMounted(() => {
       draw(randomData.value, rootSvg());
     });
+
     watch(
       [() => state.activeFormula, () => state.radius, () => state.color],
       (newValues, oldValues) => {
@@ -147,10 +171,10 @@ const BarChart = defineComponent({
       { lazy: true }
     );
 
-    return { ...toRefs(state) };
+    return { ...toRefs(state), handleInputColor };
   }
 });
 export default BarChart;
 </script>
 
-<style scoped></style>
+<style scoped lang="stylus"></style>

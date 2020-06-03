@@ -33,17 +33,32 @@
       </v-btn>
     </v-app-bar>
 
-    <v-content>
-      <BarChart id="first" />
-      <BarChart id="second" />
-      <PackChart :data="loadData" />
+    <v-content
+      ><BarChart id="first" name="Chart One" :height="400" :width="400" />
+      <BarChart
+        id="second"
+        name="Chart Two"
+        :height="400"
+        :width="400"
+        data-set="hilly"
+        default-color="#d1741d"
+      />
+      <BarChart
+        id="third"
+        name="Chart Three"
+        :height="200"
+        :width="300"
+        data-set="parabola"
+        default-color="#9D1CD1"
+      />
+      <!-- <PackChart :data="loadData" /-->>
     </v-content>
   </v-app>
 </template>
 
 <script lang="ts">
 import Vue from "vue";
-import PackChart from "@/components/PackChart.ts.vue";
+//import PackChart from "@/components/PackChart.ts.vue";
 import BarChart from "@/components/BarChart.ts.vue";
 import tweets from "@/data/tweets.json";
 
@@ -51,7 +66,7 @@ export default Vue.extend({
   name: "App",
 
   components: {
-    PackChart,
+    /*    PackChart,*/
     BarChart
   },
 
